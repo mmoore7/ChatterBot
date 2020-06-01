@@ -127,7 +127,7 @@ class ChatBot(object):
                     setattr(response, response_key, response_value)
 
         if not self.read_only:
-            self.learn_response(input_statement)
+            # self.learn_response(input_statement) - removing line to prevent bad data from entering database
 
             # Save the response generated for the input
             self.storage.create(**response.serialize())
