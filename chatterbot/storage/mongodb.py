@@ -1,6 +1,7 @@
 import re
 from chatterbot.storage import StorageAdapter
-
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 class MongoDatabaseAdapter(StorageAdapter):
     """
@@ -40,6 +41,15 @@ class MongoDatabaseAdapter(StorageAdapter):
 
         # The mongo collection of statement documents
         self.statements = self.database['statements']
+
+        # Master file related words
+        self.alt_stop_words = ["master", "file", "masterfile", "INI", "ini"]
+
+        # Stop words
+        self.stop_words = set(stopwords.words('english'))
+
+        # Punctuations
+        self.punctuations = [".", "?", ",", "'s", "what", "which"]
 
     def get_statement_model(self):
         """
@@ -121,8 +131,20 @@ class MongoDatabaseAdapter(StorageAdapter):
             kwargs['persona']['$not'] = re.compile('^bot:*')
 
         if search_text_contains:
+            # Reducing words for master file related questions
+            if any(palabra in search_text_contains.lower() for palabra in self.alt_stop_words):
+                search_text_contains_list = []
+                for w in word_tokenize(search_text_contains):
+                    if w not in self.stop_words and w not in self.alt_stop_words:
+                        search_text_contains_list.append(w)
+            else:
+                search_text_contains_list = word_tokenize(search_text_contains)
+
+            # remove punctuations
+            search_text_contains_list = [x for x in search_text_contains_list if x not in self.punctuations]
+
             or_regex = '|'.join([
-                '{}'.format(re.escape(word)) for word in search_text_contains.split(' ')
+                '{}'.format(re.escape(word)) for word in search_text_contains_list
             ])
             kwargs['search_text'] = re.compile(or_regex)
 
