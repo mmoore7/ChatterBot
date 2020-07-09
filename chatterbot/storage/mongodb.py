@@ -43,7 +43,7 @@ class MongoDatabaseAdapter(StorageAdapter):
         self.statements = self.database['statements']
 
         # Master file related words
-        self.alt_stop_words = ["master", "file", "masterfile", "INI", "ini"]
+        self.alt_stop_words = ["master", "masterfile", "INI", "ini"]
 
         # Stop words
         self.stop_words = set(stopwords.words('english'))
@@ -137,15 +137,27 @@ class MongoDatabaseAdapter(StorageAdapter):
                 for w in word_tokenize(search_text_contains):
                     if w not in self.stop_words and w not in self.alt_stop_words:
                         search_text_contains_list.append(w)
+
+                #remove punctuations
+                search_text_contains_list = [x for x in search_text_contains_list if x not in self.punctuations]
+
+                regex_lst = []
+                for word in search_text_contains_list:
+                    regex_lst.append(f"(?=.*master)" + f"(?=.*{word})")
+                or_regex = "|".join(word for word in regex_lst)
+
+                # add tag filter if INI is in the input statement
+                ini_check = [x for x in search_text_contains_list if len(x)==3]
+                if ini_check:
+                    kwargs['tags'] = {
+                        '$in': ini_check
+                    }
+
             else:
-                search_text_contains_list = word_tokenize(search_text_contains)
+                or_regex = '|'.join([
+                    '{}'.format(re.escape(word)) for word in search_text_contains.split(" ")
+                ])
 
-            # remove punctuations
-            search_text_contains_list = [x for x in search_text_contains_list if x not in self.punctuations]
-
-            or_regex = '|'.join([
-                '{}'.format(re.escape(word)) for word in search_text_contains_list
-            ])
             kwargs['search_text'] = re.compile(or_regex)
 
         mongo_ordering = []
