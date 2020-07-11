@@ -112,25 +112,6 @@ class IndexedTextSearch:
 
                 yield statement
 
-        # best_confidence_so_far = 0
-
-        # # Find the closest matching known statement
-        # for statement in statement_list:
-        #     self.chatbot.logger.info("Loop Check")
-        #     self.chatbot.logger.info(f"Comparing '{input_statement}' to '{statement}'")
-        #     confidence = self.compare_statements(input_statement, statement)
-        #
-        #     if confidence > best_confidence_so_far:
-        #         best_confidence_so_far = confidence
-        #         statement.confidence = confidence
-        #
-        #         self.chatbot.logger.info('Similar text found: {} {}'.format(
-        #             statement.text, confidence
-        #         ))
-        #
-        #         yield statement
-
-
 class TextSearch:
     """
     :param statement_comparison_function: A comparison class.
