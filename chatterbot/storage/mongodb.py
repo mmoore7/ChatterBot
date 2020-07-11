@@ -65,10 +65,10 @@ class MongoDatabaseAdapter(StorageAdapter):
         ]
 
         # Stop words
-        self.stop_words = set(stopwords.words('english'))
+        self.stop_words = stopwords.words('english')
 
         # Punctuations and other characters
-        self.extra_words = [".", "?", ",", "what"]
+        self.extra_words = [".", "?", ",", "what", "wat", "waht"]
 
         logging.basicConfig(filename="captain_hp_bot/logs/bot.log", level=logging.INFO)
 
@@ -156,21 +156,15 @@ class MongoDatabaseAdapter(StorageAdapter):
             spaced_text = search_text_contains.replace(":"," ")
             # Reducing words for master file or registry related questions
             if any(word in spaced_text for word in self.alt_stop_words):
-                # Remove any non-essential stem words
-                search_text_contains_stem = " ".join([word for word in search_text_contains.split(" ") if word.split(":")[1] not in self.alt_stop_words])
-                search_text_contains_list = [bigram for bigram in search_text_contains_stem.split() if len(bigram)==8]
-                # Use only the INI for regex search
-                if search_text_contains_list:
-                    or_regex = "|".join(search_text_contains_list)
-                # Use only key terms from the master file question
-                else:
-                    self.logger.info("No INI found. Using OR regex.")
-                    search_text_contains_list = [word for word in search_text_contains.split() if word.split(":")[1] not in self.alt_stop_words]
+                # Remove any non-essential stems
+                search_text_contains_list = [word for word in search_text_contains.split() if word.split(":")[1] not in (self.alt_stop_words + self.extra_words)]
 
-                    if search_text_contains_list:
-                        or_regex = "|".join(search_text_contains_list)
-                    else:
-                        or_regex = "|".join(search_text_contains.split())
+                if search_text_contains_list:
+                    self.logger.info(f"Word types found in search text")
+                    or_regex = "|".join(search_text_contains_list)
+                else:
+                    self.logger.info(f"No word types leftover after processing. Using default regex")
+                    or_regex = " ".join(search_text_contains.split())
             else:
                 or_regex = '|'.join([
                     '{}'.format(re.escape(word)) for word in search_text_contains.split(" ")
