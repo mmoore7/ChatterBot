@@ -2,6 +2,7 @@ import re
 from chatterbot.storage import StorageAdapter
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+import logging
 
 class MongoDatabaseAdapter(StorageAdapter):
     """
@@ -42,14 +43,34 @@ class MongoDatabaseAdapter(StorageAdapter):
         # The mongo collection of statement documents
         self.statements = self.database['statements']
 
-        # Master file related words
-        self.alt_stop_words = ["master", "masterfile", "INI", "ini"]
+        # Master file and registry related words
+        self.alt_stop_words = [
+            "master",
+            "masterfile",
+            "INI",
+            "ini",
+            "file",
+            "store",
+            "registry",
+            "reigistry",
+            "reigstry",
+            "stored",
+            "stores",
+            "mast",
+            "masterfil",
+            "fil",
+            "reg",
+            "stor",
+            "in",
+        ]
 
         # Stop words
         self.stop_words = set(stopwords.words('english'))
 
-        # Punctuations
-        self.punctuations = [".", "?", ",", "'s", "what", "which"]
+        # Punctuations and other characters
+        self.extra_words = [".", "?", ",", "what"]
+
+        logging.basicConfig(filename="captain_hp_bot/logs/bot.log", level=logging.INFO)
 
     def get_statement_model(self):
         """
@@ -130,34 +151,32 @@ class MongoDatabaseAdapter(StorageAdapter):
                 }
             kwargs['persona']['$not'] = re.compile('^bot:*')
 
+        self.logger.info(f"Contents of search_text_contains: {search_text_contains}")
         if search_text_contains:
-            # Reducing words for master file related questions
-            if any(palabra in search_text_contains.lower() for palabra in self.alt_stop_words):
-                search_text_contains_list = []
-                for w in word_tokenize(search_text_contains):
-                    if w not in self.stop_words and w not in self.alt_stop_words:
-                        search_text_contains_list.append(w)
+            spaced_text = search_text_contains.replace(":"," ")
+            # Reducing words for master file or registry related questions
+            if any(word in spaced_text for word in self.alt_stop_words):
+                # Remove any non-essential stem words
+                search_text_contains_stem = " ".join([word for word in search_text_contains.split(" ") if word.split(":")[1] not in self.alt_stop_words])
+                search_text_contains_list = [bigram for bigram in search_text_contains_stem.split() if len(bigram)==8]
+                # Use only the INI for regex search
+                if search_text_contains_list:
+                    or_regex = "|".join(search_text_contains_list)
+                # Use only key terms from the master file question
+                else:
+                    self.logger.info("No INI found. Using OR regex.")
+                    search_text_contains_list = [word for word in search_text_contains.split() if word.split(":")[1] not in self.alt_stop_words]
 
-                #remove punctuations
-                search_text_contains_list = [x for x in search_text_contains_list if x not in self.punctuations]
-
-                regex_lst = []
-                for word in search_text_contains_list:
-                    regex_lst.append(f"(?=.*master)" + f"(?=.*{word})")
-                or_regex = "|".join(word for word in regex_lst)
-
-                # add tag filter if INI is in the input statement
-                ini_check = [x for x in search_text_contains_list if len(x)==3]
-                if ini_check:
-                    kwargs['tags'] = {
-                        '$in': ini_check
-                    }
-
+                    if search_text_contains_list:
+                        or_regex = "|".join(search_text_contains_list)
+                    else:
+                        or_regex = "|".join(search_text_contains.split())
             else:
                 or_regex = '|'.join([
                     '{}'.format(re.escape(word)) for word in search_text_contains.split(" ")
                 ])
 
+            self.logger.info(f"Using the following regex: {or_regex}")
             kwargs['search_text'] = re.compile(or_regex)
 
         mongo_ordering = []

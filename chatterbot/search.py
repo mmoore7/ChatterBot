@@ -1,3 +1,7 @@
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem.lancaster import LancasterStemmer
+
 class IndexedTextSearch:
     """
     :param statement_comparison_function: A comparison class.
@@ -28,6 +32,23 @@ class IndexedTextSearch:
             'search_page_size', 1000
         )
 
+        self.alt_stop_words = [
+            "registry",
+            "reigistry",
+            "reigstry",
+            "stores",
+            "master",
+            "file",
+            "masterfile",
+            "INI",
+            "ini",
+            "stored"
+        ]
+        self.stop_words = stopwords.words('english')
+        self.stop_words.remove('ain')
+        self.stop_words.extend(["'s", 'whats', "what", "which", "that", "?", ".", ","])
+        self.st = LancasterStemmer()
+
     def search(self, input_statement, **additional_parameters):
         """
         Search for close matches to the input. Confidence scores for
@@ -43,7 +64,15 @@ class IndexedTextSearch:
         """
         self.chatbot.logger.info('Beginning search for close text match')
 
-        input_search_text = input_statement.search_text
+        # Check if the question is related to master files or registries
+        if any(word in self.alt_stop_words for word in word_tokenize(input_statement.text.lower())):
+            self.chatbot.logger.info(f"Alternative stop words found for '{input_statement.text}'")
+            input_statement_tokenized = [x for x in word_tokenize(input_statement.text.lower()) if x not in self.stop_words]
+            input_search_lst = [f"NOUN:{self.st.stem(token)}" for token in input_statement_tokenized]
+            input_search_text = " ".join(input_search_lst)
+        else:
+            self.chatbot.logger.info("Alternative stop words not found. Using default search text")
+            input_search_text = input_statement.search_text
 
         if not input_statement.search_text:
             self.chatbot.logger.warn(
@@ -63,16 +92,16 @@ class IndexedTextSearch:
         if additional_parameters:
             search_parameters.update(additional_parameters)
 
+        self.chatbot.logger.info(f"Search function is using '{input_search_text}' for filter")
         statement_list = self.chatbot.storage.filter(**search_parameters)
 
         best_confidence_so_far = 0
 
-        self.chatbot.logger.info('Processing search results')
-
-        # Find the closest matching known statement
+        self.chatbot.logger.info('Processing search results, cross your fingers')
         for statement in statement_list:
-            confidence = self.compare_statements(input_statement, statement)
+            # self.chatbot.logger.info(f"Found statement: {statement}")
 
+            confidence = self.compare_statements(input_statement, statement)
             if confidence > best_confidence_so_far:
                 best_confidence_so_far = confidence
                 statement.confidence = confidence
@@ -82,6 +111,24 @@ class IndexedTextSearch:
                 ))
 
                 yield statement
+
+        # best_confidence_so_far = 0
+
+        # # Find the closest matching known statement
+        # for statement in statement_list:
+        #     self.chatbot.logger.info("Loop Check")
+        #     self.chatbot.logger.info(f"Comparing '{input_statement}' to '{statement}'")
+        #     confidence = self.compare_statements(input_statement, statement)
+        #
+        #     if confidence > best_confidence_so_far:
+        #         best_confidence_so_far = confidence
+        #         statement.confidence = confidence
+        #
+        #         self.chatbot.logger.info('Similar text found: {} {}'.format(
+        #             statement.text, confidence
+        #         ))
+        #
+        #         yield statement
 
 
 class TextSearch:
