@@ -165,7 +165,7 @@ class MongoDatabaseAdapter(StorageAdapter):
                     or_regex = "|".join(search_text_contains_list)
                 else:
                     self.logger.info(f"No word types leftover after processing. Using default regex")
-                    or_regex = " ".join(search_text_contains.split())
+                    or_regex = "|".join(search_text_contains.split())
             else:
                 or_regex = '|'.join([
                     '{}'.format(re.escape(word)) for word in search_text_contains.split(" ")
@@ -187,6 +187,7 @@ class MongoDatabaseAdapter(StorageAdapter):
                 mongo_ordering.append((order, pymongo.ASCENDING))
 
         total_statements = self.statements.find(kwargs).count()
+        self.logger.info(f"Regex query returned {total_statements} statements.")
 
         for start_index in range(0, total_statements, page_size):
             if mongo_ordering:
