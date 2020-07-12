@@ -62,6 +62,7 @@ class MongoDatabaseAdapter(StorageAdapter):
             "reg",
             "stor",
             "in",
+            "record",
         ]
 
         # Stop words
@@ -153,7 +154,7 @@ class MongoDatabaseAdapter(StorageAdapter):
 
         self.logger.info(f"Contents of search_text_contains: {search_text_contains}")
         if search_text_contains:
-            spaced_text = search_text_contains.replace(":"," ")
+            spaced_text = search_text_contains.replace(":"," ").split()
             # Reducing words for master file or registry related questions
             if any(word in spaced_text for word in self.alt_stop_words):
                 # Remove any non-essential stems
