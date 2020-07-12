@@ -100,8 +100,6 @@ class IndexedTextSearch:
 
         self.chatbot.logger.info('Processing search results, cross your fingers')
         for statement in statement_list:
-            # self.chatbot.logger.info(f"Found statement: {statement}")
-
             confidence = self.compare_statements(input_statement, statement)
             if confidence > best_confidence_so_far:
                 best_confidence_so_far = confidence
