@@ -42,7 +42,8 @@ class IndexedTextSearch:
             "masterfile",
             "INI",
             "ini",
-            "stored"
+            "stored",
+            "record",
         ]
         self.stop_words = stopwords.words('english')
         self.stop_words.remove('ain')
