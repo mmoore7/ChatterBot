@@ -156,7 +156,7 @@ class MongoDatabaseAdapter(StorageAdapter):
         if search_text_contains:
             spaced_text = search_text_contains.replace(":"," ").split()
             # Reducing words for master file or registry related questions
-            if any(word in spaced_text for word in self.alt_stop_words):
+            if any(word in self.alt_stop_words for word in spaced_text):
                 # Remove any non-essential stems
                 search_text_contains_list = [word for word in search_text_contains.split() if word.split(":")[1] not in (self.alt_stop_words + self.extra_words)]
 
