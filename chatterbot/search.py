@@ -44,6 +44,10 @@ class IndexedTextSearch:
             "ini",
             "stored",
             "record",
+            "qlik",
+            "hm",
+            "nprint",
+            "lookitt",
         ]
         self.stop_words = stopwords.words('english')
         self.stop_words.remove('ain')
